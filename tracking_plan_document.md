@@ -20,8 +20,8 @@
 ### 1.1 한 문장 정의
 
 > **트래킹 플랜(Tracking Plan)은 디지털 프로덕트에서 발생하는 모든 사용자 행동과 이벤트를 "무엇을, 언제, 어떻게, 왜" 수집할지 정의한 데이터 수집 설계 문서입니다.**
-- 코드잇 토픽 [사용자 행동 로그 설계](https://www.codeit.kr/topics/product-data-logging)
-- 
+📌 코드잇 토픽 [사용자 행동 로그 설계](https://www.codeit.kr/topics/product-data-logging)
+
 ### 1.2 핵심 구성 요소
 
 트래킹 플랜은 다음을 포함하는 **"데이터 수집의 설계도"** 입니다:
