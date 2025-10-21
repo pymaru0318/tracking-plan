@@ -1,6 +1,7 @@
 # 트래킹 플랜(Tracking Plan)
 
 > "측정할 수 없는 것은 관리할 수 없다" by 피터 드러커
+<img width="3128" height="1772" alt="image" src="https://github.com/user-attachments/assets/7c800eb4-1a14-4697-91c9-e41b08843165" />
 
 ---
 
