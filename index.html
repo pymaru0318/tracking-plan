@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>데이터 분석가의 길: 트래킹 플랜 마스터하기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            touch-action: manipulation;
+        }
+        .pixel-font {
+            font-family: 'Press Start 2P', cursive;
+        }
+        canvas {
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        .dialogue-box {
+            border: 4px solid #4a5568;
+            border-radius: 0;
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn-pixel {
+            border: 2px solid #2d3748;
+            box-shadow: 2px 2px 0px #2d3748;
+            transition: all 0.1s ease-in-out;
+        }
+        .btn-pixel:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+        .modal-content {
+            white-space: pre-wrap;
+            font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+            background: repeating-linear-gradient(
+              0deg,
+              #E8F0FE,
+              #E8F0FE 24px,
+              #CFD8DC 25px
+            );
+            line-height: 25px;
+            padding-top: 12px;
+            border: 2px solid #4a5568;
+        }
+         .modal-content h1, .modal-content h2, .modal-content h3 {
+            font-family: 'Press Start 2P', cursive;
+            margin-bottom: 1rem;
+            margin-top: 1.5rem;
+         }
+         .modal-content h1 { font-size: 1.5em; }
+         .modal-content h2 { font-size: 1.25em; }
+         .modal-content h3 { font-size: 1.1em; }
+         .modal-content code {
+            font-family: monospace;
+            background-color: rgba(0,0,0,0.05);
+            padding: 2px 4px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+         }
+         .modal-content pre {
+            background-color: #f4f4f4;
+            border: 1px solid #ddd;
+            padding: 1rem;
+            overflow-x: auto;
+            border-radius: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+         }
+         .modal-content blockquote {
+            border-left: 4px solid #4a5568;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            font-style: italic;
+         }
+         .modal-content img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 1rem auto;
+            border: 2px solid #4a5568;
+         }
+         .modal-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+         }
+         .modal-content th, .modal-content td {
+            border: 1px solid #4a5568;
+            padding: 8px;
+            text-align: left;
+         }
+         .modal-content th {
+            background-color: #e2e8f0;
+         }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div id="game-container" class="w-full max-w-4xl aspect-[16/9] bg-gray-800 relative shadow-2xl" style="display: none;">
+        <canvas id="game-canvas" class="w-full h-full"></canvas>
+
+        <div id="dialogue-container" class="absolute bottom-0 left-0 right-0 p-4" style="display: none;">
+            <div class="dialogue-box p-4">
+                <div id="character-name" class="pixel-font text-lg text-gray-800 mb-2"></div>
+                <p id="dialogue-text" class="text-gray-900 text-base leading-relaxed" style="height: 6em;"></p>
+                <div id="choices" class="mt-4 flex justify-end space-x-2"></div>
+            </div>
+        </div>
+
+        <div id="start-screen" class="absolute inset-0 bg-gray-900 bg-opacity-90 flex flex-col items-center justify-center p-8 text-center">
+            <h1 class="pixel-font text-3xl text-white mb-4">데이터 분석가의 길</h1>
+            <h2 class="pixel-font text-xl text-yellow-300 mb-8">트래킹 플랜 마스터하기</h2>
+            <p class="text-gray-300 mb-8">당신은 오늘 막 데이터 팀에 입사한 신입 분석가입니다.<br>훌륭한 분석가로 성장하기 위한 첫 번째 퀘스트는 '트래킹 플랜'을 마스터하는 것!<br>팀원들과 대화하며 데이터 세계의 기초를 다져보세요.</p>
+            <button id="start-button" class="btn-pixel pixel-font bg-green-500 text-white px-8 py-4 text-2xl">게임 시작</button>
+        </div>
+        
+        <div id="quest-log-button" class="absolute top-4 right-4">
+            <button id="quest-button" class="btn-pixel pixel-font bg-blue-500 text-white px-4 py-2">퀘스트 (0/7)</button>
+        </div>
+    </div>
+
+    <div id="modal-container" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4" style="display: none; z-index: 50;">
+        <div class="bg-white w-full max-w-3xl h-[90vh] flex flex-col">
+            <div class="p-4 bg-gray-700 text-white flex justify-between items-center">
+                <h2 id="modal-title" class="pixel-font text-lg">데이터 수첩</h2>
+                <button id="close-modal-button" class="btn-pixel bg-red-500 text-white px-3 py-1 pixel-font">X</button>
+            </div>
+            <div id="modal-content-container" class="modal-content p-6 overflow-y-auto flex-grow">
+                
+            </div>
+        </div>
+    </div>
+    
+    <div id="quest-log-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4" style="display: none; z-index: 50;">
+        <div class="bg-white w-full max-w-2xl">
+             <div class="p-4 bg-gray-700 text-white flex justify-between items-center">
+                <h2 class="pixel-font text-lg">메인 퀘스트: 트래킹 플랜 마스터</h2>
+                <button id="close-quest-log-button" class="btn-pixel bg-red-500 text-white px-3 py-1 pixel-font">X</button>
+            </div>
+            <ul id="quest-list" class="p-6 space-y-2">
+            </ul>
+        </div>
+    </div>
+
+
+<script>
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+
+const startScreen = document.getElementById('start-screen');
+const startButton = document.getElementById('start-button');
+const gameContainer = document.getElementById('game-container');
+const dialogueContainer = document.getElementById('dialogue-container');
+const characterName = document.getElementById('character-name');
+const dialogueText = document.getElementById('dialogue-text');
+const choicesContainer = document.getElementById('choices');
+const modalContainer = document.getElementById('modal-container');
+const modalTitle = document.getElementById('modal-title');
+const modalContentContainer = document.getElementById('modal-content-container');
+const closeModalButton = document.getElementById('close-modal-button');
+const questLogButton = document.getElementById('quest-log-button');
+const questButton = document.getElementById('quest-button');
+const questLogModal = document.getElementById('quest-log-modal');
+const closeQuestLogButton = document.getElementById('close-quest-log-button');
+const questList = document.getElementById('quest-list');
+
+
+let typeWriterInterval;
+let isTyping = false;
+let currentDialogue = '';
+let dialogueHistory = [];
+
+const characters = {
+    player: { color: '#4299e1', name: '나 (주니어 분석가)' },
+    mentor: { color: '#a0aec0', name: '데이터 팀장' },
+    pm: { color: '#68d391', name: 'PM' },
+    dev: { color: '#f6ad55', name: '시니어 개발자' },
+    ceo: { color: '#f56565', name: 'CEO' },
+    narrator: { color: 'transparent', name: '시스템' }
+};
+
+const gameData = [
+    {
+        id: 'intro',
+        title: '트래킹 플랜의 정의',
+        scenes: [
+            { speaker: 'mentor', dialogue: "새로 온 걸 환영해요! 저는 이 팀의 팀장입니다. 앞으로 함께 일하기 위해 '트래킹 플랜'이 무엇인지 알려드릴게요." },
+            { speaker: 'player', dialogue: "트래킹 플랜이요? 처음 들어보는데... 그게 뭔가요?" },
+            { speaker: 'mentor', dialogue: "간단히 말해, 우리가 수집할 데이터의 '설계도'라고 할 수 있죠. '데이터 수첩'을 열어 기본 정의를 확인해보세요." },
+            { type: 'modal', modalContent: 'definition', nextScene: 1 }
+        ]
+    },
+    {
+        id: 'problems',
+        title: '트래킹 플랜이 없을 때의 문제들',
+        scenes: [
+            { speaker: 'pm', dialogue: "아, 새로 오셨군요! 마침 회의 시간인데, 들어와서 보기만 하세요." },
+            { speaker: 'ceo', dialogue: "주간 회의 시작하겠습니다. 이번 달 매출 먼저 보고해주세요." },
+            { speaker: 'pm', dialogue: "그게... 마케팅팀은 5억, 재무팀은 4억 8천, 데이터팀은 5억 2천이라고 합니다..." },
+            { speaker: 'ceo', dialogue: "그래서, 이번 달 매출이 대체 얼마라는 겁니까? 왜 팀마다 숫자가 다 다른 거죠?" },
+            { speaker: 'mentor', dialogue: "(회의가 끝나고) 봤죠? 저게 바로 트래킹 플랜이 없을 때 벌어지는 일이에요. '데이터 수첩'에서 왜 저런 문제가 발생하는지 자세히 살펴보세요." },
+            { type: 'modal', modalContent: 'problems', nextScene: 2 }
+        ]
+    },
+    {
+        id: 'value',
+        title: '트래킹 플랜의 가치',
+        scenes: [
+            { speaker: 'player', dialogue: "팀장님, 잘 정리한 트래킹 플랜이 있었다면 아까 같은 회의는 없었을까요?" },
+            { speaker: 'mentor', dialogue: "맞아요. 잘 정리된 트래킹 플랜은 단순히 혼란을 막는 것 이상의 가치가 있어요. 크게 네 가지로 정리해볼 수 있죠." },
+            { speaker: 'mentor', dialogue: "데이터 품질 보장, 협업 효율화, 빠른 의사결정, 그리고 장기적인 비용 절감. '데이터 수첩'에 관련 내용을 정리해 뒀으니 꼭 읽어보세요." },
+            { type: 'modal', modalContent: 'value', nextScene: 3 }
+        ]
+    },
+    {
+        id: 'how_to_write',
+        title: '트래킹 플랜 작성법',
+        scenes: [
+            { speaker: 'player', dialogue: "이제 트래킹 플랜이 왜 중요한지는 알겠어요. 그럼 어떻게 작성해야 하나요?" },
+            { speaker: 'mentor', dialogue: "좋아요! 가장 중요한 원칙은 '나중에 답하고 싶은 질문을 먼저 생각하는 것'이에요. 마치 요리 레시피를 쓰는 것과 같죠." },
+            { speaker: 'mentor', dialogue: "그리고 이벤트 이름만큼이나 '속성(Attribute)' 설계가 중요해요. 속성이 없으면 데이터는 반쪽짜리에 불과하죠." },
+            { speaker: 'mentor', dialogue: "자세한 작성 가이드와 간단한 Todo 앱 예시를 '데이터 수첩'에 넣어뒀어요. 이걸 보면 감이 올 겁니다." },
+            { type: 'modal', modalContent: 'how_to_write', nextScene: 4 }
+        ]
+    },
+    {
+        id: 'conditions',
+        title: '성공적인 트래킹 플랜의 조건',
+        scenes: [
+            { speaker: 'dev', dialogue: "안녕하세요! 팀장님한테 얘기 들었어요. 저는 개발팀 조성준입니다. 트래킹 플랜 짠다고요? 우리 개발자 입장에서는 몇 가지만 꼭 지켜줬으면 좋겠어요." },
+            { speaker: 'dev', dialogue: "문서는 명확해야 하고, 네이밍 규칙은 일관성 있어야 합니다. 그리고 가장 중요한 건, 트래킹 플랜은 PM, 분석가, 개발자가 함께 만드는 거에요. 혼자 만들어서 던져주면 안 됩니다!" },
+            { speaker: 'mentor', dialogue: "하하, 우리 팀 개발자 말이 맞아요. 성공적인 트래킹 플랜에는 몇 가지 조건이 필요하죠. 문서 품질, 프로세스, 그리고 기술적 완성도. 그리고 절대 하지 말아야 할 '안티패턴'도 있고요." },
+            { speaker: 'mentor', dialogue: "'데이터 수첩'에 체크리스트와 역할 분담(R&R) 내용을 정리했으니 확인해보세요." },
+            { type: 'modal', modalContent: 'conditions', nextScene: 5 }
+        ]
+    },
+    {
+        id: 'case_study',
+        title: '실무 사례 연구',
+        scenes: [
+            { speaker: 'mentor', dialogue: "이론은 충분히 배운 것 같으니, 이제 실제 사례를 볼까요? 우리 '코드잇'에서 트래킹 플랜으로 어떻게 문제를 해결했는지 보여줄게요." },
+            { speaker: 'mentor', dialogue: "'사용자들은 어디서 길을 잃을까?'라는 질문에서 시작해서, 구체적인 트래킹 플랜을 설계하고, 데이터를 분석해서 실제 서비스 개선까지 이끌어냈죠." },
+            { speaker: 'mentor', dialogue: "다른 스타트업 사례도 참고하면 좋아요. '데이터 수첩'을 열어 실제 사례를 깊이 있게 연구해보세요. 이게 진짜 공부가 될 겁니다." },
+            { type: 'modal', modalContent: 'case_study', nextScene: 6 }
+        ]
+    },
+    {
+        id: 'for_juniors',
+        title: '주니어를 위한 실전 가이드',
+        scenes: [
+            { speaker: 'player', dialogue: "팀장님, 오늘 정말 많은 것을 배웠습니다. 이 지식을 어떻게 활용해야 제 성장에 도움이 될까요?" },
+            { speaker: 'mentor', dialogue: "마지막까지 좋은 질문이네요! 이 지식은 면접과 포트폴리오에서 당신을 돋보이게 할 강력한 무기가 될 거예요." },
+            { speaker: 'mentor', dialogue: "단순히 '데이터를 분석하는 사람'이 아니라, '데이터를 설계하는 사람'이 되어야 합니다. '데이터 수첩'에 취준생을 위한 팁과 미니 프로젝트 과제를 남겨뒀어요. 꼭 실천해보세요." },
+            { type: 'modal', modalContent: 'for_juniors', nextScene: 7 }
+        ]
+    }
+];
+
+const modalData = {
+    definition: `
+# 1. 트래킹 플랜의 정의
+
+## 1.1 한 문장 정의
+
+> **트래킹 플랜(Tracking Plan)은 디지털 프로덕트에서 발생하는 모든 사용자 행동과 이벤트를 "무엇을, 언제, 어떻게, 왜" 수집할지 정의한 데이터 수집 설계 문서입니다.**
+
+📌 코드잇 토픽 사용자 행동 로그 설계
+
+## 1.2 핵심 구성 요소
+
+트래킹 플랜은 다음을 포함하는 **"데이터 수집의 설계도"** 입니다:
+
+\`\`\`
+┌─────────────────────────────────────────────────────────
+│ 트래킹 플랜 = 데이터 수집 명세서
+├─────────────────────────────────────────────────────────
+│ 1. WHAT  : 어떤 이벤트를 수집하는가? (페이지 조회, 버튼 클릭...)
+│ 2. WHY   : 왜 이 데이터가 필요한가? (비즈니스 질문, KPI 측정)
+│ 3. WHEN  : 언제 이벤트가 발생하는가? (트리거 조건, 타이밍)
+│ 4. WHERE : 어디서 발생하는가? (페이지, 섹션, 플랫폼)
+│ 5. HOW   : 어떻게 구현하는가? (기술 스펙, 속성, 데이터 타입)
+│ 6. WHO   : 누가 책임지는가? (담당자, 상태 관리)
+└─────────────────────────────────────────────────────────
+\`\`\`
+`,
+    problems: `
+# 2. 트래킹 플랜이 없을 때의 문제들
+
+## 2.1 즉각적인 문제
+
+### 문제 1: "이 데이터가 뭐죠?"
+\`\`\`javascript
+// 데이터베이스에서 발견한 이벤트
+event_name: "btn_click_1"
+event_name: "user_action"
+event_name: "click_thing"
+
+❓ 이게 뭘 클릭한 건가요?
+❓ 어느 페이지에서 발생한 건가요?
+→ 아무도 모릅니다. 데이터를 쓸 수 없습니다.
+\`\`\`
+
+### 문제 2: "숫자가 왜 안 맞죠?"
+**어느 날 회의에서..**
+> CEO: "이번 달 매출이 얼마죠?"
+>
+> 마케팅팀: "5억입니다." (GA4 데이터)
+> 재무팀: "4억 8천입니다." (회계 시스템)
+> 데이터팀: "5억 2천입니다." (자체 분석)
+>
+> CEO: "...누구 말이 맞는 건가요?"
+
+**원인:** 각 팀이 '매출'을 측정하는 기준(Trigger)이 모두 달랐기 때문입니다.
+- **마케팅팀**: "결제 페이지 진입" 시점
+- **재무팀**: "실제 입금 확인" 시점
+- **데이터팀**: "주문 완료 API 호출" 시점
+
+## 2.2 비즈니스 손실
+
+- **Case 1**: 3개월간 개발한 "추천 알고리즘"의 효과를 측정할 데이터(추천 노출, 추천 클릭)를 수집하지 않아 **성공 여부를 판단하지 못함.**
+- **Case 2**: "앱 이탈률" 데이터가 실제로는 '앱 크래시'를 이탈로 잘못 집계하고 있었음. 이 잘못된 데이터 때문에 **1억 원을 들여 UI를 개편했지만 이탈률은 그대로.**
+
+## 2.3 장기적인 문제
+- **데이터 부채(Data Debt)**: 관리되지 않는 이벤트가 수천 개 쌓여 아무도 이해 못 하는 '데이터 쓰레기장'이 됨.
+- **분석 마비(Analysis Paralysis)**: 데이터 분석가가 분석보다 데이터를 찾고 정제하는 데 하루의 대부분을 소모.
+- **신뢰 상실**: 데이터가 계속 틀리자 경영진과 동료들이 더 이상 데이터를 믿지 않고 감으로 의사결정.
+`,
+    value: `
+# 3. 트래킹 플랜이 주는 가치
+
+## 3.1 데이터 품질 보장
+- **결과**: 일관되고, 중복 없으며, 완전한 데이터를 확보하여 분석 시간을 80% 단축.
+
+## 3.2 협업 효율화
+- **Before**: "이 데이터 뭐죠?" -> 회의 30분, 슬랙 10통, 코드 분석 2시간
+- **After**: 트래킹 플랜 문서 확인 -> **5분**
+
+## 3.3 빠른 의사결정
+- **상황**: "이번 달 매출이 어떤가요?"
+- **Without Plan**: 데이터 찾고, 문의하고, 정합성 확인 -> **7시간 소요**
+- **With Plan**: 정의된 이벤트로 쿼리 실행 -> **20분 소요**
+
+## 3.4 장기적 비용 절감
+5년 된 서비스를 기준으로, 트래킹 플랜 없이 운영하며 발생한 데이터 부채를 정리하고 재구축하는 데 드는 비용은 **약 1억 3,000만 원**으로 추산됩니다.
+반면, 초기에 트래킹 플랜을 구축했다면 총비용은 **약 800만 원**에 불과합니다. **94%의 비용을 절감**할 수 있습니다.
+`,
+    how_to_write: `
+# 4. 트래킹 플랜 작성 실전 가이드
+
+## 4.1 이벤트만큼 중요한 속성(Attribute)
+이벤트 이름이 "무엇을 했는가?"(\`동사\`)를 알려준다면, **속성은 "어떻게, 어디서, 어떤 것을?"(\`육하원칙\`)**에 대한 구체적인 정보를 담아줍니다.
+
+> **이벤트만 있을 때**: \`사람이 지나감\`
+>
+> **속성이 함께 있을 때**: \`사람이 지나감\`
+> - **누가**: \`{user_id: "yongha"}\`
+> - **언제**: \`{timestamp: "2025-10-21 22:30"}\`
+> - **어디서**: \`{page_name: "product_detail"}\`
+> - **무엇을**: \`{product_id: "PROD-123"}\`
+>
+> 이렇게 속성이 함께 기록되어야 비로소 완전한 스토리를 파악할 수 있습니다.
+
+## 4.2 속성 설계의 핵심 원칙: "나중에 답하고 싶은 질문을 먼저 생각하라!"
+
+**1단계: 질문 리스트 작성**
+- 이벤트: \`product_add_to_cart\` (장바구니 추가)
+- 질문: "어떤 상품이 인기 있을까?", "어떤 페이지에서 가장 많이 담을까?"
+
+**2단계: 질문에 필요한 속성 도출**
+- "어떤 상품이 인기?" -> \`product_id\`, \`product_name\`
+- "어떤 페이지에서?" -> \`page_url\`
+
+**3단계: 최종 속성 목록 정리**
+\`\`\`
+product_add_to_cart 이벤트 속성:
+- product_id: 상품 고유 ID
+- product_name: 상품명
+- price: 가격
+- quantity: 수량
+- page_url: 현재 페이지 URL
+\`\`\`
+
+## 4.3 실전 예시: Todo 앱 트래킹 플랜
+\`\`\`
+# Todo 앱 트래킹 플랜 v1.0
+
+## 측정 목표: 사용자 참여도 측정
+
+## 핵심 이벤트
+
+1. todo_created
+   - 설명: 할 일 생성
+   - 트리거: "추가" 버튼 클릭 시
+   - 속성: {todo_text}, {category}
+
+2. todo_completed
+   - 설명: 할 일 완료
+   - 트리거: 체크박스 클릭 시
+   - 속성: {todo_id}, {completion_time}
+\`\`\`
+`,
+    conditions: `
+# 5. 성공적인 트래킹 플랜의 조건
+
+## 5.1 체크리스트
+- **문서 품질**: 모든 이벤트가 명확히 정의되고, 예시 데이터가 포함되어 있는가?
+- **프로세스**: 정기적인 리뷰 일정이 있고, 명확한 승인 프로세스가 있는가?
+- **기술적 완성도**: 일관된 네이밍 컨벤션을 따르고, 데이터 타입이 명확한가?
+
+## 5.2 안티패턴 (하지 말아야 할 것)
+- **❌ "일단 다 수집하자"**: 데이터 폭발, 비용 급증, 분석 불가로 이어짐.
+- **❌ "나중에 정리하자"**: 데이터 부채가 기하급수적으로 증가.
+- **❌ "개발자한테 맡기면 되지"**: 비즈니스 맥락이 누락된 데이터가 수집됨.
+- **❌ "Excel로 충분해"**: 이벤트가 100개만 넘어가도 관리가 불가능.
+
+## 5.3 역할과 책임 (R&R): 트래킹 플랜은 누가 만드나요?
+트래킹 플랜은 **'팀 스포츠'** 와 같습니다. 신규 기능 **기획 단계**에서부터 함께 만들어야 합니다.
+
+- **👩🏻‍💼 PM/기획자**: "무엇을 알고 싶은가?" (WHY) -> 비즈니스 목표, KPI, 이벤트 초안 작성
+- **👩‍🔬 데이터 분석가**: "어떻게 측정해야 하는가?" (WHAT, HOW) -> 이벤트/속성 상세 설계, 네이밍 규칙 정의
+- **👨‍💻 개발자**: "어떻게 구현할 것인가?" (HOW) -> 기술 구현 검토, 실제 코드에 이벤트 심기
+`,
+    case_study: `
+# 6. 실무 사례 연구
+
+## 6.1 Case Study 1: 코드잇(Codeit) - 사용자 학습 경로 최적화
+
+### 문제 정의: "사용자들은 어디서 길을 잃을까?"
+- **가설**: 많은 사용자가 '탐색' 페이지에서 길을 잃고 이탈할 것이다.
+- **측정 목표**: 탐색 → 카테고리 → 로드맵 상세 → 수강 시작으로 이어지는 핵심 퍼널의 전환율 측정
+
+### 트래킹 플랜 설계 (일부)
+| 이벤트 이름 | 속성 | 분석 목표 |
+|---|---|---|
+| \`explore.click_course\` | {section}, {course_id} | 섹션별 강의 CTR 분석 |
+| \`explore_category.click_content\` | {content_type} | 콘텐츠 타입 선호도 분석 |
+| \`roadmap_detail.click_start_roadmap\` | {button_location} | CTA 버튼 위치별 효과 분석 |
+
+### 데이터 분석 및 액션 아이템
+1.  **주요 이탈 구간 발견**: '카테고리 상세' → '로드맵 상세' 전환율이 26.7%로 가장 낮았음.
+    - **액션**: 카테고리 페이지의 로드맵 카드 UI를 개선하는 A/B 테스트 진행.
+2.  **콘텐츠 선호도 파악**: '데이터 사이언스' 카테고리에서 '개별 강의' 클릭이 '로드맵' 클릭보다 3배 이상 높았음.
+    - **액션**: 해당 카테고리 페이지 상단에 '인기 개별 강의' 섹션을 먼저 노출하도록 변경.
+
+## 6.2 Case Study 2: SaaS 스타트업 B사 - 처음부터 제대로 시작하기
+
+- **배경**: 리소스가 부족한 초기 스타트업. PM이 데이터 분석을 겸직.
+- **접근 방식**:
+    1.  **미니멀한 시작**: 핵심 이벤트 10개만 Google Sheets로 정의.
+    2.  **빠른 구현**: Segment 같은 툴로 개발 비용 최소화.
+    3.  **점진적 확장**: 매주 데이터 리뷰 미팅을 통해 필요한 이벤트를 하나씩 추가.
+- **결과**:
+    - 데이터 기반으로 **빠른 제품 피벗** 결정.
+    - 명확한 데이터를 제시하여 **투자 유치 성공**.
+    - 전사적으로 **높은 데이터 활용 문화** 정착.
+`,
+    for_juniors: `
+# 7. 취준생을 위한 실전 가이드
+
+## 1. 면접 대응 전략
+
+#### Q: "신규 기능을 개발할 때 데이터 분석가의 역할은 무엇인가요?"
+> **A**: "데이터 분석가는 기능이 출시된 후가 아니라, **기획 단계**부터 참여해야 합니다. 먼저 PM과 함께 '어떤 사용자 행동 변화를 기대하는가?'를 논의하며 측정할 KPI를 설정합니다. 그 다음, 이 KPI를 측정하기 위한 트래킹 플랜을 작성하여 개발팀과 리뷰합니다. 출시 후에는 이 데이터를 바탕으로 A/B 테스트 결과를 분석하고 개선 방향을 제안하는 역할을 수행합니다."
+
+#### Q: "좋은 이벤트 이름이란 무엇인가요?"
+> **A**: "**명확하고, 일관성 있으며, 확장 가능해야 합니다.** 이를 위해 \`객체_행동(object_verb)\` 구조를 따르는 것이 좋습니다. 예를 들어 \`click_1\` 대신, \`product_detail.click_add_to_cart\` 와 같이 누가 보더라도 바로 의미를 알 수 있도록 짓는 것이 좋은 이름입니다."
+
+#### Q: "이벤트 속성을 설계할 때 가장 중요하게 생각하는 것은 무엇인가요?"
+> **A**: "**'나중에 이 데이터로 어떤 질문에 답하고 싶은가?'** 에서부터 출발하는 것입니다. 속성은 이벤트가 발생한 **맥락(Context)**을 담아주는 역할을 합니다. 예를 들어 \`purchase_complete\` 이벤트에 \`{product_id}\`, \`{price}\` 같은 속성을 함께 설계해야 '그래서 뭘 샀는데?'라는 깊이 있는 분석이 가능해집니다."
+
+## 2. 실전 미니 프로젝트: 코드잇 회원가입 퍼널 트래킹 플랜 설계하기
+
+**미션**: 코드잇의 '회원가입 퍼널' 이탈률을 분석하기 위한 트래킹 플랜을 설계해주세요.
+
+**모범 답안 예시**:
+
+| 이벤트 설명 | 이벤트 이름 | 속성 (Attribute) |
+|---|---|---|
+| 회원가입 페이지 진입 | \`signup.pageview\` | {entry_point} |
+| 정보 입력 시작 | \`signup.input_focus\` | {input_field} |
+| 가입하기 버튼 클릭 | \`signup.click_submit\` | {signup_method} |
+| 가입 성공 | \`signup.success\` | {signup_method} |
+| 가입 실패 | \`signup.fail\` | {signup_method}, {error_message} |
+
+**🎯 핵심 메시지**: "데이터를 소비하는 사람이 아닌, **데이터를 설계하는 사람**이 되어야 합니다."
+`,
+};
+
+
+let gameState = {
+    chapter: 0,
+    scene: 0,
+    completedChapters: [],
+};
+
+function resizeCanvas() {
+    const container = document.getElementById('game-container');
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+    draw();
+}
+
+function draw() {
+    if (!ctx) return;
+    const width = canvas.width;
+    const height = canvas.height;
+
+    ctx.clearRect(0, 0, width, height);
+
+    // 배경 (사무실)
+    ctx.fillStyle = '#f7fafc';
+    ctx.fillRect(0, 0, width, height);
+
+    // 바닥
+    ctx.fillStyle = '#cbd5e0';
+    ctx.fillRect(0, height * 0.8, width, height * 0.2);
+
+    // 책상
+    ctx.fillStyle = '#a0aec0';
+    ctx.fillRect(width * 0.1, height * 0.6, width * 0.3, height * 0.2);
+    ctx.fillStyle = '#718096';
+    ctx.fillRect(width * 0.12, height * 0.8, 10, height * 0.1);
+    ctx.fillRect(width * 0.38, height * 0.8, 10, height * 0.1);
+
+    // 컴퓨터
+    ctx.fillStyle = '#2d3748';
+    ctx.fillRect(width * 0.15, height * 0.45, width * 0.2, height * 0.15);
+    ctx.fillStyle = '#4299e1';
+    ctx.fillRect(width * 0.16, height * 0.46, width * 0.18, height * 0.13);
+
+
+    // 현재 씬에 맞는 캐릭터들 그리기
+    const currentChapterData = gameData[gameState.chapter];
+    if (currentChapterData) {
+        const currentSceneData = currentChapterData.scenes[gameState.scene];
+        if (currentSceneData) {
+             const speakerKey = currentSceneData.speaker;
+             
+             // 플레이어
+             drawCharacter(characters.player, width * 0.5, height * 0.8 - 100, speakerKey === 'player');
+
+             // 상대방
+             const otherSpeakerKey = getOtherSpeaker(speakerKey);
+             if (otherSpeakerKey && characters[otherSpeakerKey]) {
+                drawCharacter(characters[otherSpeakerKey], width * 0.7, height * 0.8 - 100, speakerKey === otherSpeakerKey);
+             }
+        }
+    }
+}
+
+function getOtherSpeaker(currentSpeaker) {
+    if (currentSpeaker === 'player') {
+        const currentChapterData = gameData[gameState.chapter];
+        const nextSceneWithOther = currentChapterData.scenes.slice(gameState.scene).find(s => s.speaker !== 'player' && s.speaker !== 'narrator');
+        return nextSceneWithOther ? nextSceneWithOther.speaker : 'mentor';
+    }
+    return currentSpeaker;
+}
+
+
+function drawCharacter(char, x, y, isSpeaking) {
+    const headSize = 20;
+    const bodyWidth = 30;
+    const bodyHeight = 50;
+
+    ctx.save();
+    if(isSpeaking) {
+        ctx.shadowColor = 'yellow';
+        ctx.shadowBlur = 15;
+    }
+
+    // 몸
+    ctx.fillStyle = char.color;
+    ctx.fillRect(x - bodyWidth / 2, y - bodyHeight, bodyWidth, bodyHeight);
+
+    // 머리
+    ctx.fillStyle = '#f6ad55'; // skin color
+    ctx.fillRect(x - headSize / 2, y - bodyHeight - headSize, headSize, headSize);
+    
+    // 눈
+    ctx.fillStyle = '#2d3748';
+    ctx.fillRect(x - 5, y - bodyHeight - headSize + 5, 3, 3);
+    ctx.fillRect(x + 2, y - bodyHeight - headSize + 5, 3, 3);
+    
+    ctx.restore();
+}
+
+
+function typeWriter(text, onComplete) {
+    clearInterval(typeWriterInterval);
+    isTyping = true;
+    currentDialogue = text;
+    let i = 0;
+    dialogueText.innerHTML = "";
+    typeWriterInterval = setInterval(() => {
+        if (i < text.length) {
+            dialogueText.innerHTML += text.charAt(i);
+            i++;
+        } else {
+            clearInterval(typeWriterInterval);
+            isTyping = false;
+            if (onComplete) onComplete();
+        }
+    }, 30);
+}
+
+function skipTyping() {
+    if (isTyping) {
+        clearInterval(typeWriterInterval);
+        isTyping = false;
+        dialogueText.innerHTML = currentDialogue;
+        
+        displayChoices();
+    } else {
+         if (choicesContainer.querySelector('button.next-btn')) {
+            nextScene();
+        }
+    }
+}
+
+function displayChoices() {
+    choicesContainer.innerHTML = '';
+
+    if (dialogueHistory.length > 0) {
+        const prevButton = document.createElement('button');
+        prevButton.textContent = '◀ 이전';
+        prevButton.className = 'btn-pixel pixel-font bg-gray-300 text-gray-800 px-4 py-2';
+        prevButton.onclick = previousScene;
+        choicesContainer.appendChild(prevButton);
+    }
+
+    const scene = gameData[gameState.chapter].scenes[gameState.scene];
+    if (scene.type === 'modal') {
+        const openNoteButton = document.createElement('button');
+        openNoteButton.textContent = '데이터 수첩 열기 📖';
+        openNoteButton.className = 'btn-pixel pixel-font bg-blue-500 text-white px-4 py-2';
+        openNoteButton.onclick = () => showModal(scene.modalContent, scene.nextScene);
+        choicesContainer.appendChild(openNoteButton);
+    } else {
+        const nextButton = document.createElement('button');
+        nextButton.textContent = '다음 ▶';
+        nextButton.className = 'btn-pixel pixel-font bg-yellow-400 text-gray-800 px-4 py-2 next-btn';
+        nextButton.onclick = nextScene;
+        choicesContainer.appendChild(nextButton);
+    }
+}
+
+
+function renderScene() {
+    if (gameState.chapter >= gameData.length) {
+        showEndScreen();
+        return;
+    }
+
+    const chapter = gameData[gameState.chapter];
+    const scene = chapter.scenes[gameState.scene];
+    
+    if (!scene) {
+        showEndScreen();
+        return;
+    }
+
+    if (scene.type === 'modal') {
+        const oldState = { chapter: gameState.chapter, scene: gameState.scene };
+        dialogueHistory.push(oldState);
+        showModal(scene.modalContent, scene.nextScene);
+        return;
+    }
+
+    dialogueContainer.style.display = 'block';
+
+    const char = characters[scene.speaker];
+    characterName.textContent = char.name;
+    characterName.style.color = char.color === 'transparent' ? '#2d3748' : char.color;
+
+    typeWriter(scene.dialogue, displayChoices);
+    
+    draw();
+    updateQuestLog();
+}
+
+function previousScene() {
+    if (dialogueHistory.length > 0) {
+        const lastState = dialogueHistory.pop();
+        gameState.chapter = lastState.chapter;
+        gameState.scene = lastState.scene;
+        renderScene();
+    }
+}
+
+function nextScene() {
+    const oldState = { chapter: gameState.chapter, scene: gameState.scene };
+    dialogueHistory.push(oldState);
+
+    const chapter = gameData[gameState.chapter];
+    if (!chapter) {
+        showEndScreen();
+        return;
+    }
+    if (gameState.scene < chapter.scenes.length - 1) {
+        gameState.scene++;
+    } else {
+        if (!gameState.completedChapters.includes(gameState.chapter)) {
+            gameState.completedChapters.push(gameState.chapter);
+        }
+        gameState.chapter++;
+        gameState.scene = 0;
+    }
+    renderScene();
+}
+
+function showModal(contentKey, nextChapter) {
+    modalTitle.textContent = gameData.find(chap => chap.id === contentKey)?.title || '데이터 수첩';
+    modalContentContainer.innerHTML = marked.parse(modalData[contentKey]);
+        
+    modalContainer.style.display = 'flex';
+    
+    closeModalButton.onclick = () => {
+        modalContainer.style.display = 'none';
+        if (nextChapter !== undefined) {
+             if (!gameState.completedChapters.includes(gameState.chapter)) {
+                gameState.completedChapters.push(gameState.chapter);
+            }
+            gameState.chapter = nextChapter;
+            gameState.scene = 0;
+            renderScene();
+        }
+    };
+}
+
+function showEndScreen() {
+    dialogueContainer.style.display = 'none';
+    startScreen.style.display = 'flex';
+    startScreen.innerHTML = `
+        <h1 class="pixel-font text-3xl text-white mb-4">Quest Complete!</h1>
+        <h2 class="pixel-font text-xl text-yellow-300 mb-8">트래킹 플랜 마스터</h2>
+        <p class="text-gray-300 mb-8">축하합니다! 당신은 데이터 팀의 첫 번째 퀘스트를 완료했습니다.<br>이제 당신은 데이터를 소비하는 사람이 아닌, 데이터를 '설계'하는 사람으로 첫걸음을 내디뎠습니다.<br>앞으로의 여정을 응원합니다!</p>
+        <button onclick="location.reload()" class="btn-pixel pixel-font bg-green-500 text-white px-8 py-4 text-2xl">다시하기</button>
+    `;
+}
+
+function updateQuestLog() {
+    questButton.textContent = `퀘스트 (${gameState.completedChapters.length}/7)`;
+    questList.innerHTML = '';
+    gameData.forEach((quest, index) => {
+        const isCompleted = gameState.completedChapters.includes(index);
+        const isCurrent = gameState.chapter === index;
+        
+        let status = '◻️';
+        let textColor = 'text-gray-500';
+
+        if (isCompleted) {
+            status = '✅';
+            textColor = 'text-green-600';
+        } else if (isCurrent) {
+            status = '▶️';
+            textColor = 'text-blue-600 font-bold';
+        }
+
+        const li = document.createElement('li');
+        li.className = `pixel-font ${textColor}`;
+        li.textContent = `${status} ${index + 1}. ${quest.title}`;
+        questList.appendChild(li);
+    });
+}
+
+
+startButton.addEventListener('click', () => {
+    startScreen.style.display = 'none';
+    renderScene();
+});
+
+questButton.addEventListener('click', () => {
+    questLogModal.style.display = 'flex';
+});
+
+closeQuestLogButton.addEventListener('click', () => {
+    questLogModal.style.display = 'none';
+});
+
+dialogueContainer.addEventListener('click', skipTyping);
+
+window.addEventListener('load', () => {
+    gameContainer.style.display = 'block';
+    resizeCanvas();
+});
+window.addEventListener('resize', resizeCanvas);
+
+</script>
+</body>
+</html>
+
