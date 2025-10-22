@@ -1552,6 +1552,8 @@ GitHub 프로젝트 예시:
 
 ## 8. 데이터 분석가의 역할
 
+<img width="1024" height="1024" alt="DataTunnelVision" src="https://github.com/user-attachments/assets/d74aebd4-7737-4022-ae93-0786d1c6befe" />
+
 데이터 분석가는 단순히 “데이터를 분석하는 사람”이 아니라, **문제를 데이터로 정의하고, 의미 있는 결과로 연결하는 사람** 이라고 생각합니다.
 즉, 분석은 가운데 단계일 뿐이고, 그 앞뒤로는 훨씬 더 많은 일들이 있습니다. 
 
